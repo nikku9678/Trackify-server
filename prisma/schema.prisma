@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id       Int                 @id @default(autoincrement())
+  username      String              @unique
+  email         String              @unique
+  password_hash String
+  phone         String?
+  created_at    DateTime            @default(now())
+  updated_at    DateTime            @default(now())
+  following     Follower[]          @relation("FollowerRelation")
+  followers     Follower[]          @relation("FollowingRelation")
+  notes         Note[]
+  profile       Profile?
+  sheets        Sheet[]
+  sheetProblem  SheetProblem[]
+  userStatuses  UserProblemStatus[]
+}
+
+model Profile {
+  profile_id   Int      @id @default(autoincrement())
+  user_id      Int      @unique
+  linkedin_url String?
+  github_url   String?
+  leetcode_url String?
+  bio          String?
+  is_public    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+  user         User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model Sheet {
+  sheet_id      Int            @id @default(autoincrement())
+  user_id       Int
+  title         String
+  description   String?
+  is_public     Boolean        @default(false)
+  share_token   String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @default(now())
+  notes         Note[]
+  user          User           @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  sheetProblems SheetProblem[]
+}
+
+model Problem {
+  problem_id    Int                 @id @default(autoincrement())
+  platform      Platform
+  title         String
+  link          String              @unique
+  difficulty    Difficulty
+  created_at    DateTime            @default(now())
+  notes         Note[]
+  sheetProblems SheetProblem[]
+  userStatuses  UserProblemStatus[]
+}
+
+model SheetProblem {
+  id          Int     @id @default(autoincrement())
+  sheet_id    Int
+  problem_id  Int
+  order_index Int?
+  user_id     Int
+  problem     Problem @relation(fields: [problem_id], references: [problem_id], onDelete: Cascade)
+  sheet       Sheet   @relation(fields: [sheet_id], references: [sheet_id], onDelete: Cascade)
+  user        User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([sheet_id, problem_id, user_id])
+}
+
+model UserProblemStatus {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  problem_id     Int
+  status         Status    @default(NotStarted)
+  last_attempted DateTime?
+  custom_note    String?
+  problem        Problem   @relation(fields: [problem_id], references: [problem_id], onDelete: Cascade)
+  user           User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, problem_id])
+}
+
+model Note {
+  note_id     Int      @id @default(autoincrement())
+  user_id     Int
+  sheet_id    Int?
+  title       String?
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  problem_id  Int?
+  problem     Problem? @relation(fields: [problem_id], references: [problem_id])
+  sheet       Sheet?   @relation(fields: [sheet_id], references: [sheet_id])
+  user        User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model Follower {
+  follower_id  Int
+  following_id Int
+  followed_at  DateTime @default(now())
+  follower     User     @relation("FollowerRelation", fields: [follower_id], references: [user_id], onDelete: Cascade)
+  following    User     @relation("FollowingRelation", fields: [following_id], references: [user_id], onDelete: Cascade)
+
+  @@id([follower_id, following_id])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+enum Platform {
+  LeetCode
+  GFG
+  Codeforces
+  Other
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+enum Status {
+  NotStarted
+  Attempted
+  Solved
+}
