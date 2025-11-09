@@ -7,11 +7,15 @@ const prisma = new PrismaClient();
 export const createProblemFromLeetcode = async (req: Request, res: Response) => {
   try {
     const { url } = req.body;
-    if (!url) return res.status(400).json({ message: "LeetCode URL is required" });
+    if (!url) {
+      return res.status(400).json({ message: "LeetCode URL is required" });
+    }
 
+    // 🔹 Fetch problem data from LeetCode
     const problemData = await fetchLeetcodeProblem(url);
+    console.log(problemData);
 
-    // Convert string difficulty to enum
+    // 🔹 Convert string difficulty to enum
     let difficultyEnum: Difficulty;
     switch (problemData.difficulty.toLowerCase()) {
       case "medium":
@@ -24,7 +28,7 @@ export const createProblemFromLeetcode = async (req: Request, res: Response) => 
         difficultyEnum = Difficulty.Easy;
     }
 
-    // ✅ Check if problem already exists
+    // 🔹 Check if problem already exists
     const existingProblem = await prisma.problem.findUnique({
       where: { link: problemData.link },
     });
@@ -36,24 +40,25 @@ export const createProblemFromLeetcode = async (req: Request, res: Response) => 
       });
     }
 
-    // Create new problem if not found
+    // 🔹 Create new problem if not found
     const newProblem = await prisma.problem.create({
       data: {
         title: problemData.title,
         difficulty: difficultyEnum,
         link: problemData.link,
         platform: Platform.LeetCode,
+        topicTags: problemData.topicTags, // 👈 added tags
       },
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Problem created successfully",
       problem: newProblem,
     });
   } catch (error: any) {
     console.error("Error creating problem:", error);
-    res.status(500).json({ message: error.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
-
-

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt, { Secret } from "jsonwebtoken";
 
 import prisma from "../config/db";
+import { AuthRequest } from "../types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || "1h";
@@ -69,10 +70,50 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       message: "Login successful",
       token,
-      user: { id: user.user_id, email: user.email, username: user.username },
+      user: { id: user.user_id, email: user.email, username: user.username,role:user.role },
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error during login" });
+  }
+};
+
+export const getMe = async (req: AuthRequest, res: Response) => {
+  try {
+    // AuthRequest should have `user` attached by your auth middleware
+    if (!req.user) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Support either `userId` (we sign) or `id` depending on middleware
+    const userId = (req.user as any).userId ?? (req.user as any).id;
+    if (!userId) {
+      return res.status(400).json({ message: "Invalid token payload" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { user_id: Number(userId) },
+      select: {
+        user_id: true,
+        username: true,
+        email: true,
+        phone: true,
+        role: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Normalize shape returned to frontend
+    res.json({
+      id: user.user_id,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      role: user.role ?? "USER",
+    });
+  } catch (err) {
+    console.error("getMe error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

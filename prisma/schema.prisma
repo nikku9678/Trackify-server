@@ -22,7 +22,16 @@ model User {
   sheets        Sheet[]
   sheetProblem  SheetProblem[]
   userStatuses  UserProblemStatus[]
+
+  // 👇 add this line
+  role          Role                @default(USER)
 }
+
+enum Role {
+  ADMIN
+  USER
+}
+
 
 model Profile {
   profile_id   Int      @id @default(autoincrement())
@@ -57,11 +66,13 @@ model Problem {
   title         String
   link          String              @unique
   difficulty    Difficulty
+  topicTags     String[]
   created_at    DateTime            @default(now())
   notes         Note[]
   sheetProblems SheetProblem[]
   userStatuses  UserProblemStatus[]
 }
+
 
 model SheetProblem {
   id          Int     @id @default(autoincrement())
