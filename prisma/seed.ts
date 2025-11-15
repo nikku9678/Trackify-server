@@ -67,7 +67,7 @@ async function main() {
     },
   });
 
-  // 3️⃣ Create a Sheet for user1
+  // 3️⃣ Create a Sheet for user1 (FIXED sheetProblems with user_id)
   const sheet = await prisma.sheet.create({
     data: {
       user_id: user1.user_id,
@@ -76,9 +76,21 @@ async function main() {
       is_public: true,
       sheetProblems: {
         create: [
-          { problem_id: problem1.problem_id, order_index: 1 },
-          { problem_id: problem2.problem_id, order_index: 2 },
-          { problem_id: problem3.problem_id, order_index: 3 },
+          {
+            problem_id: problem1.problem_id,
+            order_index: 1,
+            user_id: user1.user_id,   // ✅ FIXED
+          },
+          {
+            problem_id: problem2.problem_id,
+            order_index: 2,
+            user_id: user1.user_id,   // ✅ FIXED
+          },
+          {
+            problem_id: problem3.problem_id,
+            order_index: 3,
+            user_id: user1.user_id,   // ✅ FIXED
+          },
         ],
       },
     },
