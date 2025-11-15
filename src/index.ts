@@ -9,37 +9,28 @@ import problemRoutes from "./routes/problemRoutes";
 import noteRoutes from "./routes/noteRoutes";
 import followerRoutes from "./routes/followerRoutes";
 import cors from 'cors';
-
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
-
-// 🚀 Allowed frontend domains
-const allowedOrigins = [
-  "https://trackify-dev-n.vercel.app",   // Vercel front-end
-  "http://localhost:3000"                // Local development
-];
+const allowedOrigins = [process.env.CLIENT_URL || "http://localhost:3000"];
 
 app.use(express.json());
-
-// ✅ FIXED CORS CONFIG
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// ✅ CRITICAL FIX: Handle OPTIONS preflight
 app.options("*", cors());
 
-// -------------------- ROUTES ----------------------
 
 app.use("/api/auth", authRoutes);
+// Register all routes
 app.use("/api/users", userRoutes);
 app.use("/api/profiles", profileRoutes);
 app.use("/api/sheets", sheetRoutes);
@@ -47,12 +38,88 @@ app.use("/api/problems", problemRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/followers", followerRoutes);
 
+// 🧪 Root test route
 app.get('/', (req, res) => {
   res.send('🚀 Server is running successfully!');
 });
 
-// -----------------------------------------------
+// 👤 Get all users with their profiles
+app.get('/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: { profile: true },
+    });
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching users' });
+  }
+});
 
+// 📄 Get all sheets with problems
+app.get('/sheets', async (req, res) => {
+  try {
+    const sheets = await prisma.sheet.findMany({
+      include: {
+        user: { select: { username: true } },
+        sheetProblems: {
+          include: {
+            problem: true,
+          },
+        },
+      },
+    });
+    res.json(sheets);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching sheets' });
+  }
+});
+
+// 🧠 Get all problems
+app.get('/problems', async (req, res) => {
+  try {
+    const problems = await prisma.problem.findMany();
+    res.json(problems);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching problems' });
+  }
+});
+
+// 🗒️ Get all notes
+app.get('/notes', async (req, res) => {
+  try {
+    const notes = await prisma.note.findMany({
+      include: {
+        user: { select: { username: true } },
+        sheet: { select: { title: true } },
+      },
+    });
+    res.json(notes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching notes' });
+  }
+});
+
+// 👥 Get followers
+app.get('/followers', async (req, res) => {
+  try {
+    const followers = await prisma.follower.findMany({
+      include: {
+        follower: { select: { username: true } },
+        following: { select: { username: true } },
+      },
+    });
+    res.json(followers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching followers' });
+  }
+});
+
+// 🚀 Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
